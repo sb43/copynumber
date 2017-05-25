@@ -24,4 +24,5 @@ import(S4Vectors)
 importFrom(IRanges, IRanges)
 importFrom(GenomicRanges, GRanges)
 importFrom(GenomicRanges, "mcols<-")
+import(hash)
 
