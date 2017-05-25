@@ -106,6 +106,9 @@ pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TR
 	  	tmpassembly<-read.table(cytoband_file,sep="\t",comment.char = "#",header = FALSE)
 	  }
 	  names(tmpassembly)<-c("chrom","chromStart","chromEnd","name","gieStain")
+	  #restrict assembly to chromosomes in the data frame
+	  tmpassembly<-tmpassembly[tmpassembly$chrom %in% c(keys(tmpChrHash)), ]
+	  tmpassembly<-droplevels(tmpassembly)
 	  for (key in keys(tmpChrHash)) {
      levels(tmpassembly$chrom)[levels(tmpassembly$chrom) == key ] <- tmpChrHash[[key]]
     } 
