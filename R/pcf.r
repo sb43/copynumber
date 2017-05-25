@@ -26,18 +26,17 @@
 
 ## Main function for pcf-analysis to be called by the user
 
-pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TRUE,fast=TRUE,assembly="hg19",digits=4,return.est=FALSE,save.res=FALSE,file.names=NULL,verbose=TRUE){
-   
+pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TRUE,fast=TRUE,assembly="hg19",cytoband_file=NULL, digits=4,return.est=FALSE,save.res=FALSE,file.names=NULL,verbose=TRUE){
+  library(hash)
   #Check pos.unit input:
   if(!pos.unit %in% c("bp","kbp","mbp")){
     stop("pos.unit must be one of bp, kbp and mbp",call.=FALSE)
   }
 
   #Check assembly input:
-  if(!assembly %in% c("hg19","hg18","hg17","hg16","mm7","mm8","mm9")){
+  if(!file.exists(cytoband_file) && !assembly %in% c("hg19","hg18","hg17","hg16","mm7","mm8","mm9")){
     stop("assembly must be one of hg19, hg18, hg17 or hg16",call.=FALSE)
-  }
-  
+  }  
   #Is data a file:
   isfile.data <- class(data)=="character"
   
@@ -46,7 +45,15 @@ pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TR
     #Input could come from winsorize and thus be a list; check and possibly retrieve data frame wins.data
     data <- pullOutContent(data,what="wins.data")
     stopifnot(ncol(data)>=3)  #something is missing in input data
-    #Extract information from data:
+    #convert chromsomes to index -sb43######################
+    tmpChr <- levels(data$chr) 
+    tmpChrHash<-hash(tmpChr,1:length(tmpChr))
+    # convert data frame to 
+    for (key in keys(tmpChrHash)) {
+     levels(data$chr)[levels(data$chr) == key ] <- tmpChrHash[[key]]
+    } 
+    #end sb43 ######################
+   #Extract information from data:
     chrom <- data[,1]
     position <- data[,2]
     nSample <- ncol(data)-2
@@ -64,19 +71,26 @@ pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TR
 
     #Read just the two first columns to get chrom and pos
     chrom.pos <- read.table(file=data,sep="\t",header=TRUE,colClasses=c(rep(NA,2),rep("NULL",nSample)),as.is=TRUE)  #chromosomes could be character or numeric
+    #convert chromsomes to index -sb43######################
+    tmpChr <- levels(chrom.pos$chr) 
+    tmpChrHash<-hash(tmpChr,1:length(tmpChr))
+    # convert data frame to 
+    for (key in keys(tmpChrHash)) {
+     levels(chrom.pos$chr)[levels(chrom.pos$chr) == key ] <- tmpChrHash[[key]]
+    } 
+    #end sb43 ######################
     chrom <- chrom.pos[,1]
     position <- chrom.pos[,2]
   }
-  
-  
+   
   #Make sure chrom is not factor:
   if(is.factor(chrom)){
     #If chrom is factor; convert to character
     chrom <- as.character(chrom)
   }
-  
+   
   #Make sure chromosomes are numeric (replace X and Y by 23 and 24)
-  num.chrom <- numericChrom(chrom)
+  num.chrom <- as.numeric(chrom) # sb43
   nProbe <- length(num.chrom)
  
   #Make sure position is numeric:
@@ -85,7 +99,17 @@ pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TR
   }
   #Get character arms:
 	if(is.null(arms)){
-    arms <- getArms(num.chrom,position,pos.unit,get(assembly))
+	  # convert assembly to index 
+	  if(!file.exists(cytoband_file)){
+	    tmpassembly<-get(assembly)
+	  }else{
+	  	tmpassembly<-read.table(cytoband_file,sep="\t",comment.char = "#",header = FALSE)
+	  }
+	  names(tmpassembly)<-c("chrom","chromStart","chromEnd","name","gieStain")
+	  for (key in keys(tmpChrHash)) {
+     levels(tmpassembly$chrom)[levels(tmpassembly$chrom) == key ] <- tmpChrHash[[key]]
+    } 
+    arms <- getArms(num.chrom,position,pos.unit,tmpassembly)
 	}else{
     stopifnot(length(arms)==nProbe)
 	}
@@ -158,7 +182,6 @@ pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TR
       }
     }  
   } 
-  
   #estimates must be returned from routines if return.est or save.res
   yest <- any(return.est,save.res)
 
@@ -367,8 +390,16 @@ pcf <- function(data,pos.unit="bp",arms=NULL,Y=NULL,kmin=5,gamma=40,normalize=TR
 	if(return.est){
     pcf.est <- data.frame(chrom,position,pcf.est,stringsAsFactors=FALSE)
 	  colnames(pcf.est) <- pcf.names
+	  # convert data from index to chromosmes
+	  for (key in keys(tmpChrHash)) {
+     pcf.est$chrom[pcf.est$chrom == tmpChrHash[[key]] ] <-key
+     segments$chrom[segments$chrom == tmpChrHash[[key]] ] <-key
+    } 
 		return(list(estimates=pcf.est,segments=segments))
 	}else{
+	 for (key in keys(tmpChrHash)) {
+     segments$chrom[segments$chrom == tmpChrHash[[key]] ] <-key
+    } 
 	 return(segments)
 	}
 	
