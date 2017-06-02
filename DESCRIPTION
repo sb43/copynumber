@@ -16,5 +16,5 @@ LazyData: yes
 Date: 2013-04-16
 BuildResaveData: best
 Depends: R (>= 2.10), BiocGenerics
-Imports: S4Vectors, IRanges, GenomicRanges
+Imports: S4Vectors, IRanges, GenomicRanges, hash
 biocViews: aCGH, SNP, CopyNumberVariation, Genetics, Visualization

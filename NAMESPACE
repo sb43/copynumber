@@ -20,9 +20,8 @@ export(	winsorize,
 		pcfPlain,
 		getGRangesFormat
 		)
-import(S4Vectors)
+import(S4Vectors,hash)
 importFrom(IRanges, IRanges)
 importFrom(GenomicRanges, GRanges)
 importFrom(GenomicRanges, "mcols<-")
-import(hash)
 
